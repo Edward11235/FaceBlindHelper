@@ -1,5 +1,4 @@
 from kivy.app import App
-from kivy.uix.label import Label
 import cv2
 from Encoder import Encode
 import face_recognition
@@ -8,7 +7,7 @@ from kivy.uix.image import Image
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.textinput import TextInput
 from kivy.graphics.texture import Texture
-import threading
+import multiprocessing
 import numpy as np
 from kivy.clock import Clock
 
@@ -24,10 +23,19 @@ class KivyAPP(App):
         _, initframe = self.capture.read()
         self.classifyobj.classify_faces(initframe)
         self.recList, self.nameList = self.classifyobj.face_locaions, self.classifyobj.face_names
-        # Clock.schedule_interval(lambda dt: self.update(self.recList, self.nameList), 0.05)
-        Clock.schedule_interval(self.update, 0.05)
-        Clock.schedule_interval(lambda dt: self.classifyobj.classify_faces(self.img), 1)
+        # Clock.schedule_interval(self.update, 0.05)
+        # Clock.schedule_interval(lambda dt: self.classifyobj.classify_faces(self.img), 1)
+        Clock.schedule_interval(self.process1, 0.05)
+        Clock.schedule_interval(self.process2, 3)
         return layout
+
+    def process1(self, a):
+        proc1 = multiprocessing.Process(target=self.update())
+        proc1.start()
+
+    def process2(self, b):
+        proc2 = multiprocessing.Process(target=self.classifyobj.classify_faces(self.img))
+        proc2.start()
 
     def routine(self):
         '''读取数据库内的图片和姓名'''
@@ -36,7 +44,7 @@ class KivyAPP(App):
         self.classifyobj.faces_encoded = list(self.encoded.values())
         self.classifyobj.known_face_names = list(self.encoded.keys())
 
-    def update(self, dt):
+    def update(self):
         '''每次更新读取一次capture.read(),并把传入的长方形框和namelist放如frame中'''
         # cv2 part
         ret, self.img = self.capture.read()
@@ -64,10 +72,7 @@ class KivyAPP(App):
 
 # 在 KivyApp class中每隔0.1秒(调整，争取和识别所需时间相同）调用在另一个线程中的Face_recognition。
 # Face_recognition return 方框list和name list，在Kivy_app中每隔0.1秒cv2.rectangle一次
-class DetectionThread(threading.Thread):
-    '''thread face detection'''
-    # def __init__(self, ):
-
+class DetectionThread():
     def classify_faces(self, img):
         self.face_locaions = face_recognition.face_locations(img)
         unknown_face_encodings = face_recognition.face_encodings(img, self.face_locaions)
@@ -83,4 +88,5 @@ class DetectionThread(threading.Thread):
                 name = self.known_face_names[best_one]
             self.face_names.append(name)
 
-KivyAPP().run()
+if __name__ == '__main__':
+    KivyAPP().run()

@@ -1,38 +1,38 @@
+import kivy
+import threading
+import time
 from kivy.app import App
-from kivy.uix.widget import Widget
-from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.image import Image
-from kivy.clock import Clock
-from kivy.graphics.texture import Texture
+from kivy.uix.button import Button
 
-import cv2
+class Thread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self.counter = 0
+    def run(self):
+        while True:
+            print("Thread is running "+str(self.counter))
+            app.button.text = self.set_button(self.counter)
+            app.button.text = str(self.counter)
+            time.sleep(0.5)
+    def count(self):
+        self.counter += 1
+        app.button.text = str(self.counter)
+    def set_button(self, value):
+        app.button.text = str(value)
 
-class CamApp(App):
-
+class MyApp(App):
+    def __init__ (self, thread_object):
+        App.__init__(self)
+        self.thread_object = thread_object
+    def callback(self,instance):
+        print('The button <%s> is being pressed' % instance.text)
+        self.thread_object.count()
     def build(self):
-        self.img1=Image()
-        layout = BoxLayout()
-        layout.add_widget(self.img1)
-        #opencv2 stuffs
-        self.capture = cv2.VideoCapture(0)
-        cv2.namedWindow("CV2 Image")
-        Clock.schedule_interval(lambda dt: self.update('1'), 1.0/33.0)
-        return layout
+        self.button = Button(text='Hello World')
+        self.button.bind(on_press=self.callback)
+        return self.button
 
-    def update(self, dt):
-        # display image from cam in opencv window
-        print(dt)
-        ret, frame = self.capture.read()
-        cv2.imshow("CV2 Image", frame)
-        # convert it to texture
-        buf1 = cv2.flip(frame, 0)
-        buf = buf1.tostring()
-        texture1 = Texture.create(size=(frame.shape[1], frame.shape[0]), colorfmt='bgr')
-        #if working on RASPBERRY PI, use colorfmt='rgba' here instead, but stick with "bgr" in blit_buffer.
-        texture1.blit_buffer(buf, colorfmt='bgr', bufferfmt='ubyte')
-        # display image from the texture
-        self.img1.texture = texture1
-
-if __name__ == '__main__':
-    CamApp().run()
-    cv2.destroyAllWindows()
+thread = Thread()
+thread.start()
+app = MyApp(thread)
+app.run()
