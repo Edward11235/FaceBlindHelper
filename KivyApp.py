@@ -23,19 +23,9 @@ class KivyAPP(App):
         _, initframe = self.capture.read()
         self.classifyobj.classify_faces(initframe)
         self.recList, self.nameList = self.classifyobj.face_locaions, self.classifyobj.face_names
-        # Clock.schedule_interval(self.update, 0.05)
-        # Clock.schedule_interval(lambda dt: self.classifyobj.classify_faces(self.img), 1)
-        Clock.schedule_interval(self.process1, 0.05)
-        Clock.schedule_interval(self.process2, 3)
+        Clock.schedule_interval(self.update, 0.05)
+        Clock.schedule_interval(lambda dt: self.classifyobj.classify_faces(self.img), 1)
         return layout
-
-    def process1(self, a):
-        proc1 = multiprocessing.Process(target=self.update())
-        proc1.start()
-
-    def process2(self, b):
-        proc2 = multiprocessing.Process(target=self.classifyobj.classify_faces(self.img))
-        proc2.start()
 
     def routine(self):
         '''读取数据库内的图片和姓名'''
@@ -44,10 +34,11 @@ class KivyAPP(App):
         self.classifyobj.faces_encoded = list(self.encoded.values())
         self.classifyobj.known_face_names = list(self.encoded.keys())
 
-    def update(self):
+    def update(self, dt):
         '''每次更新读取一次capture.read(),并把传入的长方形框和namelist放如frame中'''
         # cv2 part
         ret, self.img = self.capture.read()
+        self.classifyobj.img = self.img
         # self.recList, self.nameList = self.classifyobj.face_locaions, self.classifyobj.face_names
 
         recList, nameList = self.classifyobj.face_locaions, self.classifyobj.face_names
@@ -73,7 +64,8 @@ class KivyAPP(App):
 # 在 KivyApp class中每隔0.1秒(调整，争取和识别所需时间相同）调用在另一个线程中的Face_recognition。
 # Face_recognition return 方框list和name list，在Kivy_app中每隔0.1秒cv2.rectangle一次
 class DetectionThread():
-    def classify_faces(self, img):
+    def classify_faces(self):
+        img = None
         self.face_locaions = face_recognition.face_locations(img)
         unknown_face_encodings = face_recognition.face_encodings(img, self.face_locaions)
         self.face_names = []
