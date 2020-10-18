@@ -1,10 +1,5 @@
-import cv2
 import face_recognition as fr
 import os
-import numpy as np
-import face_recognition
-import threading
-
 
 class Encode():
 
